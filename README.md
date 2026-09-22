@@ -49,7 +49,7 @@ contract.
 
 ## Deployment
 Deployed on **GenLayer Bradbury Testnet** (chain ID 4221):
-- **Contract:** [`<pending>`](https://explorer-bradbury.genlayer.com)
+- **Contract:** [`0x7c83Fc3E0c5959b8B6ac6aac92a5CE5620e10B6f`](https://explorer-bradbury.genlayer.com/address/0x7c83Fc3E0c5959b8B6ac6aac92a5CE5620e10B6f)
 - Verified via 13 passing direct-mode tests (`python -m pytest tests/direct/`),
   covering commitment creation, past/duplicate/negative-input validation,
   reveal-before-unlock and unknown-commitment reverts, a clean
@@ -57,6 +57,16 @@ Deployed on **GenLayer Bradbury Testnet** (chain ID 4221):
   bare-randomness and `modulus`-derived reveal paths, double-reveal
   rejection, and independent commitments computing distinct target rounds
   from different `unlock_after` values.
+- Verified live end-to-end against the real drand public API (not just
+  direct-mode tests): committed with `modulus=6` (a fair die roll), waited
+  for the real target round's scheduled publish time to pass, and called
+  `reveal()` - validators reached full 5/5 consensus and the contract
+  recorded drand round `6488916`. Independently re-fetching that exact
+  round from `api.drand.sh/public/6488916` returns the byte-identical
+  randomness the contract stored, and recomputing
+  `int(randomness, 16) % 6` by hand gives `0`, matching the contract's own
+  `derived_value: 0` exactly - the result is reproducible from the public
+  beacon alone, without trusting this contract's word for it.
 
 ## What's included
 - `contracts/beacon_lock.py` — the BeaconLock Intelligent Contract
