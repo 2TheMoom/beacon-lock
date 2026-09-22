@@ -49,24 +49,28 @@ contract.
 
 ## Deployment
 Deployed on **GenLayer Bradbury Testnet** (chain ID 4221):
-- **Contract:** [`0x7c83Fc3E0c5959b8B6ac6aac92a5CE5620e10B6f`](https://explorer-bradbury.genlayer.com/address/0x7c83Fc3E0c5959b8B6ac6aac92a5CE5620e10B6f)
-- Verified via 13 passing direct-mode tests (`python -m pytest tests/direct/`),
-  covering commitment creation, past/duplicate/negative-input validation,
-  reveal-before-unlock and unknown-commitment reverts, a clean
-  revert-then-succeed once randomness becomes available, both the
-  bare-randomness and `modulus`-derived reveal paths, double-reveal
+- **Contract:** [`0x869342105C28BDA49c663Cf732a66E529cDB5963`](https://explorer-bradbury.genlayer.com/address/0x869342105C28BDA49c663Cf732a66E529cDB5963)
+- Verified via 15 passing direct-mode tests (`python -m pytest tests/direct/`),
+  covering commitment creation, past/duplicate/negative-input and
+  degenerate-modulus (0 and 1) validation, reveal-before-unlock and
+  unknown-commitment reverts, revealing exactly at the `unlock_after`
+  boundary, a clean revert-then-succeed once randomness becomes available,
+  both the bare-randomness and `modulus`-derived reveal paths, double-reveal
   rejection, and independent commitments computing distinct target rounds
   from different `unlock_after` values.
 - Verified live end-to-end against the real drand public API (not just
-  direct-mode tests): committed with `modulus=6` (a fair die roll), waited
-  for the real target round's scheduled publish time to pass, and called
-  `reveal()` - validators reached full 5/5 consensus and the contract
-  recorded drand round `6488916`. Independently re-fetching that exact
-  round from `api.drand.sh/public/6488916` returns the byte-identical
-  randomness the contract stored, and recomputing
-  `int(randomness, 16) % 6` by hand gives `0`, matching the contract's own
-  `derived_value: 0` exactly - the result is reproducible from the public
-  beacon alone, without trusting this contract's word for it.
+  direct-mode tests): committed with `modulus=100`, waited for the real
+  target round's scheduled publish time to pass, and called `reveal()` -
+  validators reached full 5/5 consensus and the contract recorded drand
+  round `6488966`. Independently re-fetching that exact round from
+  `api.drand.sh/public/6488966` returns the byte-identical randomness the
+  contract stored, and recomputing `int(randomness, 16) % 100` by hand
+  gives `15`, matching the contract's own `derived_value: 15` exactly - the
+  result is reproducible from the public beacon alone, without trusting
+  this contract's word for it. A separate live call also confirmed
+  `modulus=1` is correctly rejected on-chain (deterministic revert, 5/5
+  identical), and that omitting `modulus` entirely correctly defaults to
+  `0` via the real calldata path, not just in the test harness.
 
 ## What's included
 - `contracts/beacon_lock.py` — the BeaconLock Intelligent Contract

@@ -74,8 +74,20 @@ def test_commit_negative_modulus_fails(direct_vm, direct_deploy, direct_alice):
     direct_vm.warp(T0)
     direct_vm.sender = direct_alice
 
-    with direct_vm.expect_revert("cannot be negative"):
+    with direct_vm.expect_revert("must be 0"):
         contract.commit("draft-order", UNLOCK_AFTER, -1)
+
+
+def test_commit_modulus_one_fails(direct_vm, direct_deploy, direct_alice):
+    """modulus=1 would silently always produce derived_value=0 - reject it
+    rather than let a caller accidentally rely on a value that never
+    varies, mistaking it for randomness."""
+    contract = direct_deploy(CONTRACT)
+    direct_vm.warp(T0)
+    direct_vm.sender = direct_alice
+
+    with direct_vm.expect_revert("must be 0"):
+        contract.commit("draft-order", UNLOCK_AFTER, 1)
 
 
 def test_reveal_before_unlock_fails(direct_vm, direct_deploy, direct_alice):
@@ -173,6 +185,25 @@ def test_reveal_reverts_cleanly_when_randomness_unavailable(
 
     _mock_drand(direct_vm, TARGET_ROUND, RANDOMNESS_A)
     contract.reveal("draft-order")
+    assert contract.get_commitment("draft-order")["revealed"] is True
+
+
+def test_reveal_exactly_at_unlock_after_succeeds(direct_vm, direct_deploy, direct_alice):
+    """commit() requires unlock_after strictly in the future (> now at
+    commit time); reveal() must allow the symmetric boundary - now ==
+    unlock_after - not require it to have strictly passed."""
+    contract = direct_deploy(CONTRACT)
+    direct_vm.warp(T0)
+    direct_vm.sender = direct_alice
+    contract.commit("draft-order", UNLOCK_AFTER)
+
+    from datetime import datetime, timezone
+
+    boundary = datetime.fromtimestamp(UNLOCK_AFTER, tz=timezone.utc).isoformat().replace("+00:00", "Z")
+    direct_vm.warp(boundary)
+    _mock_drand(direct_vm, TARGET_ROUND, RANDOMNESS_A)
+    contract.reveal("draft-order")
+
     assert contract.get_commitment("draft-order")["revealed"] is True
 
 

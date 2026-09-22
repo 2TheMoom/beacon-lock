@@ -74,16 +74,17 @@ class BeaconLock(gl.Contract):
     def commit(self, commitment_id: str, unlock_after: int, modulus: int = 0) -> None:
         if commitment_id in self.commitments:
             raise gl.vm.UserError(f"Commitment '{commitment_id}' already exists")
-        if unlock_after <= self._now():
+        now = self._now()
+        if unlock_after <= now:
             raise gl.vm.UserError("unlock_after must be in the future")
-        if modulus < 0:
-            raise gl.vm.UserError("modulus cannot be negative")
+        if modulus != 0 and modulus < 2:
+            raise gl.vm.UserError("modulus must be 0 (unused) or at least 2")
 
         target_round = (unlock_after - DRAND_GENESIS_TIME) // DRAND_PERIOD_SECONDS + 1
 
         self.commitments[commitment_id] = Commitment(
             creator=gl.message.sender_address.as_hex,
-            created_at=self._now(),
+            created_at=now,
             unlock_after=unlock_after,
             target_round=target_round,
             revealed=False,
